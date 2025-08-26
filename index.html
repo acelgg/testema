@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Video Loop - ACEL</title>
+  <style>
+    /* Reset ringan */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html,body { height: 100%; font-family: Arial, Helvetica, sans-serif; }
+
+    /* Container fullpage */
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Video full cover */
+    video#bgVideo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: auto;
+      height: 100%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    /* Overlay konten */
+    .overlay {
+      position: relative;
+      z-index: 2;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+      max-width: 900px;
+      width: 100%;
+      pointer-events: none; /* biar tombol video tetap accessible */
+    }
+
+    .overlay h1 { font-size: clamp(1.6rem, 3vw, 3rem); margin-bottom: 0.5rem; }
+    .overlay p { font-size: clamp(0.9rem, 1.6vw, 1.2rem); opacity: 0.9; }
+
+    /* Kontrol tombol (fixed) */
+    .controls {
+      position: fixed;
+      left: 1rem;
+      bottom: 1rem;
+      display: flex;
+      gap: 0.6rem;
+      z-index: 3;
+      pointer-events: auto;
+    }
+
+    .btn {
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      border: 0;
+      padding: 0.6rem 0.9rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+    }
+    .btn:active { transform: translateY(1px); }
+
+    /* Mobile friendly */
+    @media (max-width:600px){
+      .overlay p { font-size: 0.95rem; }
+      .controls { left: 0.6rem; bottom: 0.6rem; }
+    }
+
+    /* Sebuah gradient di bawah supaya teks terbaca */
+    .bottom-fade {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 22%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.55));
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="video-wrap">
+    <!-- Video utama: loop & autoplay, muted untuk memastikan autoplay di browser -->
+    <video id="bgVideo" playsinline autoplay muted loop preload="auto" aria-label="Latar video">
+      <source src="https://files.catbox.moe/2249d5.mp4" type="video/mp4">
+      Browser kamu gak support tag video. Tapi tetap taruh link: 
+      <a href="https://files.catbox.moe/2249d5.mp4" style="color: white; text-decoration: underline;">Buka video</a>
+    </video>
+
+    <!-- gradient bawah biar teks keliatan -->
+    <div class="bottom-fade" aria-hidden="true"></div>
+
+    <!-- overlay konten -->
+    <div class="overlay" aria-hidden="false">
+      <h1>Selamat Datang di ACEL</h1>
+      <p>Video di background bakal muter terus tanpa henti. Klik tombol 'Unmute' kalo mau denger suaranya.</p>
+    </div>
+
+    <!-- kontrol manual (play/pause + unmute) -->
+    <div class="controls" role="region" aria-label="Kontrol video">
+      <button id="toggleBtn" class="btn" type="button">⏸️ Pause</button>
+      <button id="muteBtn" class="btn" type="button">🔇 Unmute</button>
+      <a class="btn" href="https://files.catbox.moe/2249d5.mp4" target="_blank" rel="noopener">Buka file</a>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('bgVideo');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const muteBtn = document.getElementById('muteBtn');
+
+    // Pastikan teks tombol sesuai status awal
+    function updateButtons() {
+      toggleBtn.textContent = video.paused ? '▶️ Play' : '⏸️ Pause';
+      muteBtn.textContent = video.muted ? '🔇 Unmute' : '🔊 Mute';
+    }
+
+    // Toggle play/pause
+    toggleBtn.addEventListener('click', () => {
+      if (video.paused) {
+        video.play().catch(err => {
+          // kalau autoplay/permission bermasalah, biar gak crash
+          console.warn('Play blocked:', err);
+        });
+      } else {
+        video.pause();
+      }
+      updateButtons();
+    });
+
+    // Toggle mute/unmute
+    muteBtn.addEventListener('click', () => {
+      video.muted = !video.muted;
+      // beberapa browser butuh set volume > 0 dan play jika sempat di-pause
+      if (!video.muted) {
+        // coba play biar suara keluar kalau sebelumnya diblokir
+        video.play().catch(()=>{});
+      }
+      updateButtons();
+    });
+
+    // Pastikan tombol sinkron kalo user pakai kontrol native
+    video.addEventListener('play', updateButtons);
+    video.addEventListener('pause', updateButtons);
+    video.addEventListener('volumechange', updateButtons);
+
+    // Fallback: beberapa browser/host memicu ended walau loop set; handle utk safety
+    video.addEventListener('ended', () => {
+      video.currentTime = 0;
+      video.play().catch(()=>{});
+    });
+
+    // Inisialisasi label
+    updateButtons();
+  </script>
+</body>
+</html>
